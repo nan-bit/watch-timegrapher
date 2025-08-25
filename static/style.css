@@ -1,0 +1,146 @@
+/* --- Global Styles & Dark Theme --- */
+:root {
+    --bg-color: #111418;
+    --card-bg: #1b2127;
+    --border-color: #3b4754;
+    --text-primary: #f0f2f5;
+    --text-secondary: #9cabba;
+    --accent-blue: #3d98f4;
+    --accent-blue-hover: #5aa4f5;
+    --font-main: 'Inter', 'Noto Sans', sans-serif;
+}
+
+body {
+    font-family: var(--font-main);
+    background-color: var(--bg-color);
+    color: var(--text-primary);
+    margin: 0;
+    padding: 20px;
+}
+
+h3 {
+    margin: 0 0 1em 0;
+    font-weight: 500;
+    font-size: 0.9em;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+label { font-weight: 500; }
+canvas { width: 100%; }
+
+/* --- Main App Layout --- */
+#app-container {
+    width: 100%;
+    max-width: 1400px;
+    margin: 0 auto;
+}
+
+header {
+    display: flex;
+    align-items: center;
+    padding-bottom: 15px;
+    margin-bottom: 20px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.logo { display: flex; align-items: center; gap: 12px; }
+.logo svg { width: 24px; height: 24px; }
+.logo h1 { font-size: 1.5em; margin: 0; }
+
+main {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.main-row {
+    display: flex;
+    flex-wrap: wrap; /* Allows wrapping on smaller screens */
+    gap: 20px;
+}
+
+.card {
+    background-color: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 20px;
+    flex: 1; /* Makes cards in a row share space */
+    min-width: 280px; /* Prevents cards from getting too squished */
+}
+
+/* --- Card Content Styling --- */
+.control-group {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+.control-group:not(:last-child) { margin-bottom: 15px; }
+
+#results-display {
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    height: 100%;
+}
+.metric { text-align: center; }
+.metric span { color: var(--text-secondary); font-size: 0.9em; }
+.metric p { margin: 4px 0 0 0; font-size: 1.8em; font-weight: 700; color: var(--text-primary); }
+
+#actions-card {
+    justify-content: center;
+    gap: 15px;
+}
+.button-group { display: flex; flex-direction: column; gap: 10px; flex-grow: 1; justify-content: center; }
+#loadingSpinner { text-align: center; color: var(--text-secondary); }
+
+/* --- Form Elements Styling --- */
+select, input[type="range"] {
+    background-color: var(--bg-color);
+    color: var(--text-primary);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 8px 12px;
+    font-size: 1em;
+}
+input[type="range"] { padding: 0; }
+
+button {
+    padding: 10px 15px;
+    border: none;
+    background-color: var(--accent-blue);
+    color: white;
+    font-size: 1em;
+    font-weight: 700;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+button:hover:not(:disabled) { background-color: var(--accent-blue-hover); }
+button:disabled { background-color: #283039; color: #6a7c8d; cursor: not-allowed; }
+
+/* --- Peak Meter --- */
+#peak-meter {
+    height: 8px;
+    border-radius: 4px;
+    background-color: #283039;
+    overflow: hidden;
+    margin: 8px 0 15px 0;
+}
+#peak-meter-bar {
+    height: 100%;
+    width: 0%;
+    background-color: #4caf50;
+    transition: width 0.05s, background-color 0.1s;
+    border-radius: 4px;
+}
+
+/* --- Chart Cards --- */
+.chart-card {
+    display: flex;
+    flex-direction: column;
+}
+.chart-card canvas {
+    flex-grow: 1;
+}
