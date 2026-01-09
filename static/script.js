@@ -1,3 +1,5 @@
+import { COMMON_MOVEMENTS } from './movements.js';
+
 console.log("--- SCRIPT VERSION 2.02 ---"); // Diagnostic line
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -32,6 +34,50 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
+    // --- Movement Database Logic ---
+    const movementSearch = document.getElementById('movementSearch');
+    const movementList = document.getElementById('movementList');
+    const liftAngleSelect = document.getElementById('liftAngle');
+
+    if (movementSearch && movementList) {
+        COMMON_MOVEMENTS.forEach(m => {
+            const option = document.createElement('option');
+            option.value = `${m.brand} ${m.caliber}`;
+            movementList.appendChild(option);
+        });
+
+        movementSearch.addEventListener('input', (e) => {
+            const value = e.target.value;
+            const movement = COMMON_MOVEMENTS.find(m => `${m.brand} ${m.caliber}` === value);
+            if (movement) {
+                // Check if the options has this exact value
+                // The current select has discrete values. If the movement has a value not in the list (e.g. 52.5), it might fail?
+                // The select options are: 42,43,44,45,46,48,49,50,51,52,53,54,54.5,55,56,57,58,60
+                // Most movements in our DB are 44, 49, 50, 51, 52, 53.
+                // 3235 is 53 or 55. 6497 is 44.
+                // Let's try to set it. If it doesn't match, we might need to add it dynamically or warn.
+
+                // Better approach: Check if it exists, if not create it.
+                let optionExists = Array.from(liftAngleSelect.options).some(o => parseFloat(o.value) === movement.liftAngle);
+
+                if (!optionExists) {
+                    const newOption = document.createElement('option');
+                    newOption.value = movement.liftAngle;
+                    newOption.textContent = `${movement.liftAngle}°`;
+                    liftAngleSelect.appendChild(newOption);
+                    // Sort options? slightly complex for now. Just append.
+                }
+
+                liftAngleSelect.value = movement.liftAngle;
+
+                // Visual feedback
+                liftAngleSelect.style.transition = 'background-color 0.3s';
+                liftAngleSelect.style.backgroundColor = '#d4edda'; // light green
+                setTimeout(() => liftAngleSelect.style.backgroundColor = '', 1000);
+            }
+        });
+    }
+
     async function initAudio() {
         if (!audioContext) {
             try {
@@ -65,7 +111,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
             } catch (err) {
                 console.error('Error accessing microphone:', err);
-                alert(`Could not access microphone.\n\nError: ${err.name}\nMessage: ${err.message}`);
+                let helpMsg = `Could not access microphone.\n\nError: ${err.name}\nMessage: ${err.message}`;
+                if (window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1' && window.location.protocol !== 'https:') {
+                    helpMsg += '\n\nNOTE: Browsers often block microphone access on insecure (non-HTTPS) connections unless you are using "localhost". Try accessing the site via http://localhost:8000 instead of an IP address.';
+                } else {
+                    helpMsg += '\n\nPlease check your browser address bar permissions (lock icon) to ensure microphone access is allowed for this site.';
+                }
+                alert(helpMsg);
             }
         }
     }
@@ -95,10 +147,10 @@ document.addEventListener('DOMContentLoaded', () => {
             peakMeterBar.style.backgroundColor = '#4caf50';
         }
 
-        waveformCtx.fillStyle = '#f4f4f4';
+        waveformCtx.fillStyle = '#1b2127';
         waveformCtx.fillRect(0, 0, waveformCanvas.width, waveformCanvas.height);
         waveformCtx.lineWidth = 2;
-        waveformCtx.strokeStyle = '#0056b3';
+        waveformCtx.strokeStyle = '#3d98f4';
         waveformCtx.beginPath();
         const sliceWidth = waveformCanvas.width * 1.0 / bufferLength;
         let x = 0;
@@ -167,6 +219,9 @@ document.addEventListener('DOMContentLoaded', () => {
     function drawAveragedWaveformChart(waveform) {
         if (averagedWaveformChart) averagedWaveformChart.destroy();
         const ctx = document.getElementById('averagedWaveformCanvas').getContext('2d');
+        Chart.defaults.color = '#9cabba';
+        Chart.defaults.borderColor = '#3b4754';
+        
         averagedWaveformChart = new Chart(ctx, {
             type: 'line',
             data: {
@@ -174,13 +229,28 @@ document.addEventListener('DOMContentLoaded', () => {
                 datasets: [{
                     label: 'Averaged Beat Cycle',
                     data: waveform,
-                    borderColor: '#0056b3',
-                    fill: false,
+                    borderColor: '#3d98f4',
+                    backgroundColor: 'rgba(61, 152, 244, 0.1)',
+                    fill: true,
                     pointRadius: 0,
-                    borderWidth: 1
+                    borderWidth: 2
                 }]
             },
-            options: { scales: { x: { title: { display: true, text: 'Samples' } }, y: { title: { display: true, text: 'Amplitude' } } } }
+            options: { 
+                scales: { 
+                    x: { 
+                        title: { display: true, text: 'Samples', color: '#9cabba' },
+                        grid: { color: '#3b4754' }
+                    }, 
+                    y: { 
+                        title: { display: true, text: 'Amplitude', color: '#9cabba' },
+                        grid: { color: '#3b4754' } 
+                    } 
+                },
+                plugins: {
+                    legend: { labels: { color: '#f0f2f5' } }
+                }
+            }
         });
     }
 
@@ -193,10 +263,26 @@ document.addEventListener('DOMContentLoaded', () => {
                 datasets: [{
                     label: 'Beat-to-Beat Interval (ms)',
                     data: intervals.map((interval, i) => ({ x: i + 1, y: interval })),
-                    backgroundColor: 'rgba(255, 99, 132, 0.6)'
+                    backgroundColor: '#ff6b6b',
+                    borderColor: '#ff6b6b'
                 }]
             },
-            options: { scales: { x: { title: { display: true, text: 'Beat Number' } }, y: { title: { display: true, text: 'Interval (ms)' }, beginAtZero: false } } }
+            options: { 
+                scales: { 
+                    x: { 
+                        title: { display: true, text: 'Beat Number', color: '#9cabba' },
+                        grid: { color: '#3b4754' }
+                    }, 
+                    y: { 
+                        title: { display: true, text: 'Interval (ms)', color: '#9cabba' },
+                        grid: { color: '#3b4754' },
+                        beginAtZero: false 
+                    } 
+                },
+                plugins: {
+                    legend: { labels: { color: '#f0f2f5' } }
+                }
+            }
         });
     }
 });

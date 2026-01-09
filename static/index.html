@@ -36,9 +36,13 @@
                         </select>
                     </div>
                     <div class="control-group">
+                        <label for="movementSearch">Movement / Caliber:</label>
+                        <input type="text" id="movementSearch" placeholder="Type to search (e.g. NH35)" list="movementList">
+                        <datalist id="movementList"></datalist>
+                    </div>
+                    <div class="control-group">
                         <label for="liftAngle">Lift Angle:</label>
                         <select id="liftAngle">
-                            <option value="52" selected>52°</option>
                             <option value="42">42°</option>
                             <option value="43">43°</option>
                             <option value="44">44°</option>
@@ -104,6 +108,6 @@
             </div>
         </main>
     </div>
-    <script src="/static/script.js"></script>
+    <script type="module" src="/static/script.js"></script>
 </body>
 </html>

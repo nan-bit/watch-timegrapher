@@ -96,7 +96,7 @@ main {
 #loadingSpinner { text-align: center; color: var(--text-secondary); }
 
 /* --- Form Elements Styling --- */
-select, input[type="range"] {
+select, input[type="text"], input[type="range"] {
     background-color: var(--bg-color);
     color: var(--text-primary);
     border: 1px solid var(--border-color);
