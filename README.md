@@ -7,6 +7,7 @@ A browser-based application that uses your microphone to analyze the performance
 ## Features
 
 *   **Live Audio Monitoring:** Real-time waveform and peak-meter visualizations to ensure a clean audio capture.
+*   **Movement Database:** Built-in searchable database of common watch movements (Seiko, ETA, Rolex, etc.) that automatically sets the correct Lift Angle.
 *   **Adjustable Microphone Gain:** A UI slider allows you to tune the input signal to prevent clipping or noise issues.
 *   **One-Click Automated Analysis:** A single button captures a 6-second audio sample and sends it for a complete analysis.
 *   **Accurate Metrics Calculation:**
@@ -16,6 +17,7 @@ A browser-based application that uses your microphone to analyze the performance
 *   **Rich Diagnostic Visualizations:**
     *   **Averaged Waveform Chart:** See a clean, noise-free representation of a single beat cycle.
     *   **Beat Error Timeline:** A scatter plot visualizing the stability of the watch's beat rate over the full sample.
+    *   **Dark Theme Integration:** All charts and graphs are optimized for the application's dark mode.
 
 ## Technology Stack
 
