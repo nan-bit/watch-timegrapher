@@ -141,7 +141,9 @@ function averagedWaveform(envelope, periodSamples) {
 
 function calcAmplitude(avgWave, periodSamples, liftAngleDeg) {
     if (!avgWave) return 0;
-    const maxH = Math.max(...avgWave) * 0.3;
+    let avgWaveMax = -Infinity;
+    for (let i = 0; i < avgWave.length; i++) if (avgWave[i] > avgWaveMax) avgWaveMax = avgWave[i];
+    const maxH = avgWaveMax * 0.3;
     const minDist = periodSamples * 0.5;
     const peaks = findPeaks(avgWave, maxH, minDist);
     if (peaks.length < 2) return 0;
@@ -188,13 +190,17 @@ async function analyzeBlob(blob, bph, liftAngle) {
     }
 
     // Signal quality check
-    const overallMax = Math.max(...ac.slice(1, Math.floor(expectedPeriod * 1.5)));
+    const acSlice = ac.slice(1, Math.floor(expectedPeriod * 1.5));
+    let overallMax = -Infinity;
+    for (let i = 0; i < acSlice.length; i++) if (acSlice[i] > overallMax) overallMax = acSlice[i];
     const quality = maxVal / overallMax;
 
     const measuredPeriod = quadraticPeak(ac, maxIdx);
     const rateSpd = ((expectedPeriod / measuredPeriod) - 1) * 86400;
 
-    const peakMinH = Math.max(...smoothed) * 0.1;
+    let smoothedMax = -Infinity;
+    for (let i = 0; i < smoothed.length; i++) if (smoothed[i] > smoothedMax) smoothedMax = smoothed[i];
+    const peakMinH = smoothedMax * 0.1;
     const peakMinDist = measuredPeriod * 0.75;
     const peaks = findPeaks(smoothed, peakMinH, peakMinDist);
 
@@ -280,6 +286,8 @@ document.addEventListener('DOMContentLoaded', () => {
         movementList.appendChild(opt);
     });
 
+    movementSearch.addEventListener('focus', () => movementSearch.select());
+
     movementSearch.addEventListener('input', e => {
         const match = COMMON_MOVEMENTS.find(m => `${m.brand} ${m.caliber}` === e.target.value);
         if (!match) return;
@@ -328,7 +336,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const isInsecure = location.protocol !== 'https:' && location.hostname !== 'localhost';
             let msg = `Microphone access denied.\n\nError: ${err.name}`;
             if (isInsecure) msg += '\n\nTip: Browsers require HTTPS for microphone access (except localhost).';
-            else msg += '\n\nCheck the lock icon in your browser's address bar and allow microphone access.';
+            else msg += "\n\nCheck the lock icon in your browser's address bar and allow microphone access.";
             alert(msg);
         }
     });
