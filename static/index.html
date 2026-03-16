@@ -3,45 +3,59 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Watch Analyzer</title>
-    <!-- Link to Google Fonts -->
-    <link rel="preconnect" href="https://fonts.gstatic.com/" crossorigin="" />
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?display=swap&family=Inter%3Awght%40400%3B500%3B700&family=Noto+Sans%3Awght%40400%3B500%3B700" />
-    <!-- Cache-busting for the stylesheet -->
-    <link rel="stylesheet" href="/static/style.css?v=2.0">
+    <title>Watch Timegrapher</title>
+    <link rel="preconnect" href="https://fonts.gstatic.com/" crossorigin="">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?display=swap&family=Inter:wght@400;500;700">
+    <link rel="stylesheet" href="style.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
     <div id="app-container">
         <header>
             <div class="logo">
-                <svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M44 11.2727C44 14.0109 39.8386 16.3957 33.69 17.6364C39.8386 18.877 44 21.2618 44 24C44 26.7382 39.8386 29.123 33.69 30.3636C39.8386 31.6043 44 33.9891 44 36.7273C44 40.7439 35.0457 44 24 44C12.9543 44 4 40.7439 4 36.7273C4 33.9891 8.16144 31.6043 14.31 30.3636C8.16144 29.123 4 26.7382 4 24C4 21.2618 8.16144 18.877 14.31 17.6364C8.16144 16.3957 4 14.0109 4 11.2727C4 7.25611 12.9543 4 24 4C35.0457 4 44 7.25611 44 11.2727Z" fill="currentColor"></path></svg>
-                <h1>Watch Analyzer</h1>
+                <!-- Watch icon -->
+                <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" width="28" height="28">
+                    <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.5"/>
+                    <path d="M12 7v5l3 2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                    <path d="M9 2h6M9 22h6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                </svg>
+                <div>
+                    <h1>Watch Timegrapher</h1>
+                    <p class="subtitle">Mechanical watch accuracy analyzer</p>
+                </div>
+            </div>
+            <div id="status-bar">
+                <span id="statusDot"></span>
+                <span id="statusText">Idle</span>
             </div>
         </header>
 
         <main>
-            <!-- Row 1: Parameters, Actions, and Results -->
+            <!-- Row 1: Parameters + Actions + Results -->
             <div class="main-row">
+                <!-- Parameters -->
                 <div class="card" id="parameters-card">
                     <h3>Parameters</h3>
                     <div class="control-group">
-                        <label for="bph">BPH:</label>
-                        <select id="bph">
-                            <option value="28800" selected>28800</option>
-                            <option value="18000">18000</option>
-                            <option value="21600">21600</option>
-                            <option value="25200">25200</option>
-                            <option value="36000">36000</option>
-                        </select>
-                    </div>
-                    <div class="control-group">
-                        <label for="movementSearch">Movement / Caliber:</label>
-                        <input type="text" id="movementSearch" placeholder="Type to search (e.g. NH35)" list="movementList">
+                        <label for="movementSearch">Caliber</label>
+                        <input type="text" id="movementSearch" placeholder="e.g. NH35, ETA 2824-2" list="movementList" autocomplete="off">
                         <datalist id="movementList"></datalist>
                     </div>
                     <div class="control-group">
-                        <label for="liftAngle">Lift Angle:</label>
+                        <label for="bph">BPH</label>
+                        <select id="bph">
+                            <option value="28800" selected>28800 (4 Hz)</option>
+                            <option value="36000">36000 (5 Hz)</option>
+                            <option value="25200">25200 (3.5 Hz)</option>
+                            <option value="21600">21600 (3 Hz)</option>
+                            <option value="18000">18000 (2.5 Hz)</option>
+                        </select>
+                    </div>
+                    <div class="control-group">
+                        <label for="liftAngle">
+                            Lift angle
+                            <span class="tooltip" title="The arc angle swept by the roller jewel through the notch. Found in movement spec sheets.">ⓘ</span>
+                        </label>
                         <select id="liftAngle">
                             <option value="42">42°</option>
                             <option value="43">43°</option>
@@ -65,37 +79,74 @@
                     </div>
                 </div>
 
+                <!-- Actions -->
                 <div class="card" id="actions-card">
-                    <h3>Actions</h3>
-                    <div class="button-group">
-                        <button id="startMonitoring">Start Monitoring</button>
-                        <button id="captureSample" disabled>Capture 6s Sample</button>
+                    <h3>Capture</h3>
+                    <button id="startMonitoring">Enable Microphone</button>
+                    <div class="capture-wrap">
+                        <button id="captureSample" disabled>
+                            <span id="captureBtnLabel">Capture 6s Sample</span>
+                            <span id="countdownOverlay" style="display:none;"></span>
+                        </button>
                     </div>
-                    <div id="loadingSpinner" style="display: none;">Analyzing...</div>
+                    <label class="toggle-label">
+                        <input type="checkbox" id="continuousMode">
+                        <span>Continuous mode</span>
+                    </label>
+                    <div id="loadingSpinner" style="display:none;">
+                        <div class="spinner-ring"></div>
+                        <span>Analyzing…</span>
+                    </div>
+                    <div id="qualityWarning" style="display:none;">
+                        ⚠ Weak signal — hold watch closer to mic
+                    </div>
                 </div>
 
+                <!-- Results -->
                 <div class="card" id="results-card">
                     <h3>Results</h3>
                     <div id="results-display">
-                        <div class="metric"><span>Rate (s/d)</span><p id="rateResult">-</p></div>
-                        <div class="metric"><span>Beat Error (ms)</span><p id="beatErrorResult">-</p></div>
-                        <div class="metric"><span>Amplitude (°)</span><p id="amplitudeResult">-</p></div>
+                        <div class="metric">
+                            <span>Rate (s/d)
+                                <span class="tooltip" title="Seconds gained (+) or lost (–) per day. ±10 s/d is COSC certified. ±20 s/d is typical for a regulated movement.">ⓘ</span>
+                            </span>
+                            <p id="rateResult">—</p>
+                        </div>
+                        <div class="metric">
+                            <span>Beat error (ms)
+                                <span class="tooltip" title="Asymmetry between tick and tock intervals. Under 0.5 ms is excellent; over 1 ms may need regulation.">ⓘ</span>
+                            </span>
+                            <p id="beatErrorResult">—</p>
+                        </div>
+                        <div class="metric">
+                            <span>Amplitude (°)
+                                <span class="tooltip" title="Balance wheel arc of swing. 250–310° is ideal. Below 200° usually means insufficient power reserve or worn parts.">ⓘ</span>
+                            </span>
+                            <p id="amplitudeResult">—</p>
+                        </div>
                     </div>
+                    <button id="exportBtn" class="secondary" disabled>Copy Results</button>
                 </div>
             </div>
 
             <!-- Row 2: Live Monitoring -->
             <div class="card" id="monitoring-card">
                 <h3>Live Monitoring</h3>
-                <div class="control-group">
-                    <label for="gainSlider">Gain:</label>
+                <div class="monitor-controls">
+                    <label for="gainSlider">Gain</label>
                     <input type="range" id="gainSlider" min="0" max="5" step="0.1" value="1" disabled>
                 </div>
                 <div id="peak-meter"><div id="peak-meter-bar"></div></div>
-                <canvas id="waveformCanvas"></canvas>
+                <canvas id="waveformCanvas" height="80"></canvas>
             </div>
 
-            <!-- Row 3: Detailed Analysis Charts -->
+            <!-- Row 3: History -->
+            <div class="card" id="history-card">
+                <h3>Measurement History</h3>
+                <ul id="historyList"><li class="hist-empty">No measurements yet</li></ul>
+            </div>
+
+            <!-- Row 4: Charts -->
             <div class="main-row">
                 <div class="card chart-card">
                     <h3>Averaged Waveform</h3>
@@ -107,7 +158,11 @@
                 </div>
             </div>
         </main>
+
+        <footer>
+            <p>Runs entirely in your browser — no data leaves your device.</p>
+        </footer>
     </div>
-    <script type="module" src="/static/script.js"></script>
+    <script type="module" src="script.js"></script>
 </body>
 </html>
