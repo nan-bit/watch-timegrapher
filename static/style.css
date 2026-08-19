@@ -1,8 +1,83 @@
-/* ── Variables ───────────────────────────────────────────────────────────── */
+/* ── Variables ───────────────────────────────────────────────────────────────
+   Light is the base; dark overrides only the colours. The theme is chosen by
+   project-chrome.js, which sets both `data-theme` and a `.dark` class on <html>
+   before first paint — see the two selectors below.
+
+   The light neutrals are ernan.dev's (#f8f7f5 ground, #1a1a1a text, #5f5f5f
+   muted, #e5e7eb rule), so the page sits under the shared chrome bar rather
+   than beside it. The blue accent is this project's own and stays.
+
+   Semantic colours are darker in light mode than in dark: #4caf50 and #ff6b6b
+   read fine as light-on-dark but only reach ~2.8:1 against white, and they are
+   used as *text* on the metric cards, not just as borders.
+   ────────────────────────────────────────────────────────────────────────── */
 :root {
+    --bg:         #f8f7f5;
+    --card-bg:    #ffffff;
+    --card-bg2:   #f0efed;
+    --sunken:     #eceae7;
+    --border:     #e5e7eb;
+    --text:       #1a1a1a;
+    --muted:      #5f5f5f;
+    --accent:     #1f6fc4;
+    --accent-h:   #1a5fa8;
+    --good:       #2e7d32;
+    --warn:       #b26a00;
+    --bad:        #c62828;
+    --disabled-bg: #e8e6e3;
+    --disabled-fg: #a8a29b;
+    --shadow:     rgba(20, 24, 28, 0.18);
+    /* Read by script.js and handed straight to Chart.js and canvas 2D, neither
+       of which can resolve color-mix() — these must stay literal colours.
+       --canvas-bg is a well recessed *below* the card it sits in, which is
+       darker than the card in dark mode and lighter in light mode. */
+    --canvas-bg:   #f2f1ef;
+    --accent-fill: rgba(31, 111, 196, 0.10);
+    --font:       'Inter', system-ui, sans-serif;
+    --radius:     12px;
+    --radius-sm:  8px;
+    /* The bar is fixed; body already carries 20px of its own padding, so the
+       chrome adds to it rather than replacing it. */
+    --pc-body-pad: 20px;
+    /* Point the shared chrome at this page's palette so the bar sits flush with
+       the app instead of as a lighter strip above it. One block covers both
+       themes: these resolve at use time, so they follow --bg and friends when
+       the dark overrides below take effect. */
+    --pc-host-solid: var(--bg);
+    --pc-host-fg:    var(--text);
+    --pc-host-muted: var(--muted);
+    --pc-host-line:  var(--border);
+}
+
+/* Scripting off: honour the OS rather than stranding everyone on light. */
+@media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+        --bg:         #0e1217;
+        --card-bg:    #161c23;
+        --card-bg2:   #1b2127;
+        --sunken:     #222d36;
+        --border:     #2a3540;
+        --text:       #f0f2f5;
+        --muted:      #8a9bab;
+        --accent:     #3d98f4;
+        --accent-h:   #5aaaf6;
+        --good:       #4caf50;
+        --warn:       #f4a23d;
+        --bad:        #ff6b6b;
+        --disabled-bg: #1e2933;
+        --disabled-fg: #4a5a6a;
+        --shadow:     rgba(0, 0, 0, 0.4);
+        --canvas-bg:   #111418;
+        --accent-fill: rgba(61, 152, 244, 0.08);
+    }
+}
+
+:root[data-theme="dark"],
+:root.dark {
     --bg:         #0e1217;
     --card-bg:    #161c23;
     --card-bg2:   #1b2127;
+    --sunken:     #222d36;
     --border:     #2a3540;
     --text:       #f0f2f5;
     --muted:      #8a9bab;
@@ -11,9 +86,11 @@
     --good:       #4caf50;
     --warn:       #f4a23d;
     --bad:        #ff6b6b;
-    --font:       'Inter', system-ui, sans-serif;
-    --radius:     12px;
-    --radius-sm:  8px;
+    --disabled-bg: #1e2933;
+    --disabled-fg: #4a5a6a;
+    --shadow:     rgba(0, 0, 0, 0.4);
+    --canvas-bg:   #111418;
+    --accent-fill: rgba(61, 152, 244, 0.08);
 }
 
 /* ── Reset / Base ────────────────────────────────────────────────────────── */
@@ -26,6 +103,7 @@ body {
     padding: 20px;
     font-size: 15px;
     line-height: 1.5;
+    transition: background-color 0.3s, color 0.3s;
 }
 h3 {
     margin: 0 0 14px;
@@ -116,6 +194,9 @@ main { display: flex; flex-direction: column; gap: 16px; }
     position: absolute;
     inset: 0;
     background: rgba(0,0,0,0.55);
+    /* Explicit, because in light mode the inherited --text is near-black and
+       would vanish into this scrim. */
+    color: #fff;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -150,7 +231,7 @@ main { display: flex; flex-direction: column; gap: 16px; }
 }
 @keyframes spin { to { transform: rotate(360deg); } }
 #qualityWarning {
-    background: rgba(244,162,61,0.12);
+    background: color-mix(in srgb, var(--warn) 12%, transparent);
     border: 1px solid var(--warn);
     color: var(--warn);
     border-radius: var(--radius-sm);
@@ -177,12 +258,13 @@ main { display: flex; flex-direction: column; gap: 16px; }
 .metric span { display: block; color: var(--muted); font-size: 0.8em; margin-bottom: 4px; }
 .metric p { margin: 0; font-size: 1.9em; font-weight: 700; color: var(--text); line-height: 1; }
 
-/* Color-coded metric states */
-.metric.good { border-color: var(--good); background: rgba(76,175,80,0.07); }
+/* Color-coded metric states. The tints are mixed from the semantic tokens so
+   they track the theme instead of being baked to the dark palette's hues. */
+.metric.good { border-color: var(--good); background: color-mix(in srgb, var(--good) 8%, transparent); }
 .metric.good p { color: var(--good); }
-.metric.warn { border-color: var(--warn); background: rgba(244,162,61,0.07); }
+.metric.warn { border-color: var(--warn); background: color-mix(in srgb, var(--warn) 8%, transparent); }
 .metric.warn p { color: var(--warn); }
-.metric.bad  { border-color: var(--bad);  background: rgba(255,107,107,0.07); }
+.metric.bad  { border-color: var(--bad);  background: color-mix(in srgb, var(--bad) 8%, transparent); }
 .metric.bad p  { color: var(--bad); }
 
 /* ── Monitoring card ─────────────────────────────────────────────────────── */
@@ -195,7 +277,7 @@ main { display: flex; flex-direction: column; gap: 16px; }
 #peak-meter {
     height: 6px;
     border-radius: 3px;
-    background: #222d36;
+    background: var(--sunken);
     overflow: hidden;
     margin-bottom: 10px;
 }
@@ -255,7 +337,7 @@ input[type="range"] {
 select.highlight { animation: flash 0.5s ease; }
 @keyframes flash {
     0%, 100% { border-color: var(--border); }
-    50% { border-color: var(--good); box-shadow: 0 0 0 2px rgba(76,175,80,0.3); }
+    50% { border-color: var(--good); box-shadow: 0 0 0 2px color-mix(in srgb, var(--good) 30%, transparent); }
 }
 
 button {
@@ -272,7 +354,7 @@ button {
     width: 100%;
 }
 button:hover:not(:disabled) { background: var(--accent-h); }
-button:disabled { background: #1e2933; color: #4a5a6a; cursor: not-allowed; }
+button:disabled { background: var(--disabled-bg); color: var(--disabled-fg); cursor: not-allowed; }
 button.secondary {
     background: transparent;
     border: 1px solid var(--border);
@@ -296,7 +378,7 @@ button.secondary:hover:not(:disabled) { background: var(--card-bg2); color: var(
     left: 50%;
     transform: translateX(-50%);
     bottom: calc(100% + 6px);
-    background: #222d36;
+    background: var(--sunken);
     color: var(--text);
     border: 1px solid var(--border);
     border-radius: 6px;
@@ -307,7 +389,7 @@ button.secondary:hover:not(:disabled) { background: var(--card-bg2); color: var(
     z-index: 10;
     white-space: normal;
     pointer-events: none;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+    box-shadow: 0 4px 12px var(--shadow);
 }
 
 /* ── Footer ──────────────────────────────────────────────────────────────── */
@@ -321,6 +403,7 @@ footer {
 /* ── Mobile ──────────────────────────────────────────────────────────────── */
 @media (max-width: 600px) {
     body { padding: 12px; }
+    :root { --pc-body-pad: 12px; }
     .card { min-width: 0; padding: 16px; }
     #results-display { flex-direction: column; }
     .metric p { font-size: 1.5em; }

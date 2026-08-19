@@ -261,16 +261,31 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const CAPTURE_DURATION = 6000;
 
+    /* ── Theme ────────────────────────────────────────────────────────────────
+       Everything painted into a <canvas> — the live waveform and both Chart.js
+       charts — is pixels, not CSS, so it cannot inherit a theme change. Read the
+       palette from the custom properties instead of hardcoding it, and repaint
+       when project-chrome.js announces a switch. */
+    const css = (name) =>
+        getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+
+    // Last rendered inputs, kept so a theme switch can redraw without a recapture.
+    let lastWaveform = null;
+    let lastIntervals = null;
+    let currentStatus = 'idle';
+
     // ── Status helper ──
+    const STATES = {
+        idle:       { label: 'Idle',       token: '--muted'  },
+        monitoring: { label: 'Monitoring', token: '--good'   },
+        capturing:  { label: 'Capturing',  token: '--warn'   },
+        analyzing:  { label: 'Analyzing',  token: '--accent' },
+    };
+
     function setStatus(state) {
-        const states = {
-            idle:       { label: 'Idle',       color: '#9cabba' },
-            monitoring: { label: 'Monitoring', color: '#4caf50' },
-            capturing:  { label: 'Capturing',  color: '#f4a23d' },
-            analyzing:  { label: 'Analyzing',  color: '#3d98f4' },
-        };
-        const s = states[state] || states.idle;
-        statusDot.style.backgroundColor = s.color;
+        currentStatus = STATES[state] ? state : 'idle';
+        const s = STATES[currentStatus];
+        statusDot.style.backgroundColor = css(s.token);
         statusText.textContent = s.label;
     }
 
@@ -439,13 +454,15 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         const pct = (peak / 128) * 100;
         peakMeterBar.style.width = pct + '%';
-        peakMeterBar.style.backgroundColor = pct > 95 ? '#ff6b6b' : pct > 85 ? '#f4a23d' : '#4caf50';
+        peakMeterBar.style.backgroundColor = css(
+            pct > 95 ? '--bad' : pct > 85 ? '--warn' : '--good'
+        );
 
         const w = waveformCanvas.width, h = waveformCanvas.height;
-        waveformCtx.fillStyle = '#111418';
+        waveformCtx.fillStyle = css('--canvas-bg');
         waveformCtx.fillRect(0, 0, w, h);
         waveformCtx.lineWidth = 2;
-        waveformCtx.strokeStyle = '#3d98f4';
+        waveformCtx.strokeStyle = css('--accent');
         waveformCtx.beginPath();
         const sw = w / data.length;
         for (let i = 0; i < data.length; i++) {
@@ -525,20 +542,27 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // ── Charts ──
-    const CHART_DEFAULTS = {
-        scales: {
-            x: { grid: { color: '#2a3540' }, ticks: { color: '#9cabba' }, title: { color: '#9cabba' } },
-            y: { grid: { color: '#2a3540' }, ticks: { color: '#9cabba' }, title: { color: '#9cabba' } },
-        },
-        plugins: { legend: { labels: { color: '#f0f2f5' } } },
-        animation: { duration: 300 },
-    };
+    // A function, not a constant: the colours have to be re-read at draw time so
+    // a chart rebuilt after a theme switch picks up the new palette.
+    function chartDefaults() {
+        const grid = css('--border');
+        const tick = css('--muted');
+        const axis = { grid: { color: grid }, ticks: { color: tick }, title: { color: tick } };
+        return {
+            scales: { x: { ...axis }, y: { ...axis } },
+            plugins: { legend: { labels: { color: css('--text') } } },
+            animation: { duration: 300 },
+        };
+    }
 
     function drawAveragedWaveformChart(waveform) {
+        lastWaveform = waveform;
         if (averagedWaveformChart) averagedWaveformChart.destroy();
         const ctx = document.getElementById('averagedWaveformCanvas').getContext('2d');
-        Chart.defaults.color = '#9cabba';
-        Chart.defaults.borderColor = '#2a3540';
+        const CHART_DEFAULTS = chartDefaults();
+        const tick = css('--muted');
+        Chart.defaults.color = tick;
+        Chart.defaults.borderColor = css('--border');
         averagedWaveformChart = new Chart(ctx, {
             type: 'line',
             data: {
@@ -546,8 +570,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 datasets: [{
                     label: 'Averaged Beat Cycle',
                     data: waveform,
-                    borderColor: '#3d98f4',
-                    backgroundColor: 'rgba(61,152,244,0.08)',
+                    borderColor: css('--accent'),
+                    backgroundColor: css('--accent-fill'),
                     fill: true,
                     pointRadius: 0,
                     borderWidth: 1.5,
@@ -556,34 +580,55 @@ document.addEventListener('DOMContentLoaded', () => {
             options: {
                 ...CHART_DEFAULTS,
                 scales: {
-                    x: { ...CHART_DEFAULTS.scales.x, title: { display: true, text: 'Samples', color: '#9cabba' } },
-                    y: { ...CHART_DEFAULTS.scales.y, title: { display: true, text: 'Envelope', color: '#9cabba' } },
+                    x: { ...CHART_DEFAULTS.scales.x, title: { display: true, text: 'Samples', color: tick } },
+                    y: { ...CHART_DEFAULTS.scales.y, title: { display: true, text: 'Envelope', color: tick } },
                 },
             },
         });
     }
 
     function drawBeatErrorChart(intervals) {
+        lastIntervals = intervals;
         if (beatErrorChart) beatErrorChart.destroy();
         const ctx = document.getElementById('beatErrorCanvas').getContext('2d');
+        const CHART_DEFAULTS = chartDefaults();
+        const tick = css('--muted');
+        const bad = css('--bad');
         beatErrorChart = new Chart(ctx, {
             type: 'scatter',
             data: {
                 datasets: [{
                     label: 'Beat Interval (ms)',
                     data: intervals.map((v, i) => ({ x: i + 1, y: v })),
-                    backgroundColor: '#ff6b6b',
-                    borderColor: '#ff6b6b',
+                    backgroundColor: bad,
+                    borderColor: bad,
                     pointRadius: 4,
                 }],
             },
             options: {
                 ...CHART_DEFAULTS,
                 scales: {
-                    x: { ...CHART_DEFAULTS.scales.x, title: { display: true, text: 'Beat #', color: '#9cabba' } },
-                    y: { ...CHART_DEFAULTS.scales.y, title: { display: true, text: 'Interval (ms)', color: '#9cabba' }, beginAtZero: false },
+                    x: { ...CHART_DEFAULTS.scales.x, title: { display: true, text: 'Beat #', color: tick } },
+                    y: { ...CHART_DEFAULTS.scales.y, title: { display: true, text: 'Interval (ms)', color: tick }, beginAtZero: false },
                 },
             },
         });
     }
+
+    /* ── Repaint on theme change ──────────────────────────────────────────────
+       The chrome bar's toggle fires this. CSS handles everything declarative;
+       these four are canvas pixels and the status dot's inline style, none of
+       which a stylesheet can reach. Charts are rebuilt only if they hold data,
+       so this is a no-op before the first capture. The live waveform redraws
+       itself every frame while monitoring, and is simply cleared when idle so a
+       stale dark frame isn't left sitting on a light page. */
+    window.addEventListener('themechange', () => {
+        setStatus(currentStatus);
+        if (lastWaveform) drawAveragedWaveformChart(lastWaveform);
+        if (lastIntervals) drawBeatErrorChart(lastIntervals);
+        if (!analyser) {
+            waveformCtx.fillStyle = css('--canvas-bg');
+            waveformCtx.fillRect(0, 0, waveformCanvas.width, waveformCanvas.height);
+        }
+    });
 });
